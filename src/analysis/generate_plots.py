@@ -44,14 +44,14 @@ from src.data.load_data import (
 logger = logging.getLogger(__name__)
 
 # Set a professional style
-sns.set_theme(context="paper", style="whitegrid", font_scale=1.3)
+sns.set_theme(context="paper", style="whitegrid", font_scale=1.5) # Increased font_scale
 plt.rcParams.update({
     "figure.figsize": (8, 5),
-    "axes.titlesize": 14,
-    "axes.labelsize": 12,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
-    "legend.fontsize": 10,
+    "axes.titlesize": 0, # Hide titles via rcParams (or just don't set them)
+    "axes.labelsize": 16, # Bigger labels
+    "xtick.labelsize": 14, # Bigger ticks
+    "ytick.labelsize": 14,
+    "legend.fontsize": 14,
     "font.family": "sans-serif",
     "pdf.fonttype": 42,  # Editable text in vector graphics
     "ps.fonttype": 42,
@@ -114,13 +114,14 @@ def plot_fidelity_metrics(run_dir: Path, datasets: List[str]) -> None:
         "alg_conn_abs_diff": "Alg. Connectivity Diff (Abs)",
     }
 
-    out_dir = run_dir / "plots" / "fidelity_metrics"
+    out_dir = run_dir / "plots"
+    _ensure_dir(out_dir)
     
     for ds in datasets:
         d_ds = df[df["dataset"] == ds].copy()
         if d_ds.empty:
             continue
-
+            
         # Create a subplot for each metric group
         # Group 1: Distributions (Wasserstein)
         # Group 2: Scalars (Modularity, etc)
@@ -141,10 +142,12 @@ def plot_fidelity_metrics(run_dir: Path, datasets: List[str]) -> None:
                 palette=METHOD_PALETTE, dodge=False, ax=ax,
                 linewidth=1.2, fliersize=3
             )
-            ax.set_title(f"{ds.title()}: {metric_map[col]}")
+            # ax.set_title(f"{ds.title()}: {metric_map[col]}") # Removed title
             ax.set_xlabel("")
             ax.set_ylabel("Distance (Lower is Better)")
-            ax.legend([], [], frameon=False) # remove legend if redundant
+            
+            # remove legend if redundant
+            ax.legend([], [], frameon=False) 
             
             # Format Y axis for small numbers
             ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
@@ -173,7 +176,8 @@ def plot_visual_distributions(run_dir: Path, datasets: List[str], data_dir: Path
         logger.warning("final_dataset not found. Skipping visual distributions.")
         return
 
-    out_dir = run_dir / "plots" / "fidelity_visuals"
+    out_dir = run_dir / "plots"
+    _ensure_dir(out_dir)
     
     for ds in datasets:
         # Load Empirical
@@ -221,18 +225,24 @@ def plot_visual_distributions(run_dir: Path, datasets: List[str], data_dir: Path
             _plot_ccdf(axes[1], np.array(all_clusts), method, palette.get(method, "blue"), "--")
 
         # Formatting Degree Plot
-        axes[0].set_title(f"{ds.title()} | Degree Distribution (CCDF)")
+        # axes[0].set_title(f"{ds.title()} | Degree Distribution (CCDF)")
         axes[0].set_xlabel("Degree (k)")
         axes[0].set_ylabel("P(K >= k)")
         axes[0].set_xscale("log")
         axes[0].set_yscale("log")
-        axes[0].legend()
+        
+        if ds.lower() == "karate":
+            axes[0].legend()
+        else:
+            axes[0].get_legend().remove() if axes[0].get_legend() else None
 
         # Formatting Clustering Plot
-        axes[1].set_title(f"{ds.title()} | Clustering Coeff. (CCDF)")
+        # axes[1].set_title(f"{ds.title()} | Clustering Coeff. (CCDF)")
         axes[1].set_xlabel("Local Clustering Coefficient")
         axes[1].set_ylabel("P(C >= c)")
-        axes[1].legend()
+        # axes[1].legend() # No legend on the second plot typically needed if first has it, or reuse same logic
+        axes[1].get_legend().remove() if axes[1].get_legend() else None
+
 
         _save_fig(fig, out_dir / f"{ds}_distributions")
 
@@ -253,7 +263,8 @@ def plot_utility_metrics(run_dir: Path, datasets: List[str]) -> None:
     if "error" in df.columns:
         df = df[(df["error"].isna()) | (df["error"] == "")]
 
-    out_dir = run_dir / "plots" / "utility"
+    out_dir = run_dir / "plots"
+    _ensure_dir(out_dir)
 
     metrics = ["ARI", "NMI", "Jaccard", "VI"]
     
@@ -280,10 +291,14 @@ def plot_utility_metrics(run_dir: Path, datasets: List[str]) -> None:
                 palette=palette, ax=ax, linewidth=1.2, showfliers=False
             )
             
-            ax.set_title(f"{ds.title()}: {metric} vs Ground Truth")
+            # ax.set_title(f"{ds.title()}: {metric} vs Ground Truth")
             ax.set_xlabel("Community Detection Algorithm")
             ax.set_ylabel(metric)
-            ax.legend(title="Generator", bbox_to_anchor=(1.05, 1), loc='upper left')
+            
+            if ds.lower() == "karate":
+                ax.legend(title="Generator", bbox_to_anchor=(1.05, 1), loc='upper left')
+            else:
+                 ax.legend([], [], frameon=False)
             
             _save_fig(fig, out_dir / f"{ds}_{metric}")
 
@@ -299,7 +314,8 @@ def plot_consistency(run_dir: Path, datasets: List[str]) -> None:
         return
 
     df = pd.read_csv(csv_path)
-    out_dir = run_dir / "plots" / "utility" # Group with utility
+    out_dir = run_dir / "plots"
+    _ensure_dir(out_dir)
 
     # We want to plot Spearman Correlations for ARI ranking
     metric = "spearman_ARI"
@@ -319,12 +335,16 @@ def plot_consistency(run_dir: Path, datasets: List[str]) -> None:
             ax=ax, dodge=False
         )
         
-        ax.set_title(f"{ds.title()}: Consistency (Rank Correlation)")
+        # ax.set_title(f"{ds.title()}: Consistency (Rank Correlation)")
         ax.set_ylabel("Spearman Rho (ARI Ranking)")
         ax.set_xlabel("")
-        ax.set_ylim(-0.1, 1.1) # Correlation is usually -1 to 1, but we expect positive
+        ax.set_ylim(-1.1, 1.1) # Correlation is -1 to 1, centering 0
         ax.axhline(0, color="black", linewidth=0.8)
         
+        # Barplot doesn't auto-legend usually unless explicitly asked, but just in case
+        if ax.get_legend() is not None:
+             ax.get_legend().remove()
+
         _save_fig(fig, out_dir / f"{ds}_consistency")
 
 
@@ -345,7 +365,8 @@ def plot_robustness(run_dir: Path, datasets: List[str], alg: str = "Louvain") ->
     if "algorithm" in df.columns:
         df = df[df["algorithm"] == alg]
     
-    out_dir = run_dir / "plots" / "robustness"
+    out_dir = run_dir / "plots"
+    _ensure_dir(out_dir)
     
     metric = "ARI_stability"
     
@@ -363,10 +384,14 @@ def plot_robustness(run_dir: Path, datasets: List[str], alg: str = "Louvain") ->
             err_style="band", errorbar=("sd", 1) # Show standard deviation
         )
         
-        ax.set_title(f"{ds.title()}: Stability under Noise ({alg})")
+        # ax.set_title(f"{ds.title()}: Stability under Noise ({alg})")
         ax.set_xlabel("Noise Fraction (Edges Rewired)")
         ax.set_ylabel(f"Stability ({metric.split('_')[0]})")
-        ax.legend(title="Generator")
+        
+        if ds.lower() == "karate":
+            ax.legend(title="Generator")
+        else:
+             ax.legend([], [], frameon=False)
         
         _save_fig(fig, out_dir / f"{ds}_robustness_{alg}")
 
@@ -382,7 +407,8 @@ def plot_quality_summary(run_dir: Path) -> None:
         return
 
     df = pd.read_csv(csv_path)
-    out_dir = run_dir / "plots" / "summary"
+    out_dir = run_dir / "plots"
+    _ensure_dir(out_dir)
 
     # Faceted bar chart: Dataset on X, Score on Y, Hue = Method
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -393,7 +419,7 @@ def plot_quality_summary(run_dir: Path) -> None:
         ax=ax, edgecolor="black"
     )
     
-    ax.set_title("Overall Generator Quality Index")
+    # ax.set_title("Overall Generator Quality Index")
     ax.set_ylabel("Composite Score (Higher is Better)")
     ax.set_xlabel("Dataset")
     ax.legend(title="Generator", bbox_to_anchor=(1.05, 1), loc='upper left')
