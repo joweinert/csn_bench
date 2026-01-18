@@ -1,0 +1,15 @@
+name: ec-sbm
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas
+  - graph-tool
+  - scipy
+  - networkx
+  - networkit
+  - numpy
+  - pip
+  - pip:
+      - git+https://github.com/vikramr2/python-mincut@0b2bcc64a5b939640eadc66fe0af2419d19515eb
+      - git+https://github.com/illinois-or-research-analytics/cm_pipeline@f5a0ba7b5d605af530fefa3a8a1f03fce5726495

@@ -1,0 +1,22 @@
+services:
+  reccs:
+    build:
+      context: .
+      dockerfile: docker/reccs/Dockerfile
+      args:
+        RECCS_REF: 3545d622d41921fdb2a457d390fd7ba8615d0ca3
+    working_dir: /work
+    volumes:
+      - .:/work
+    profiles: ["reccs"]
+
+  ecsbm:
+    profiles: ["ecsbm"]
+    build:
+      context: .
+      dockerfile: docker/ecsbm/Dockerfile
+      args:
+        ECSBM_REF: 1e1af53a1ab0ba2db88f2bad69c8a74f345ccfa1
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
